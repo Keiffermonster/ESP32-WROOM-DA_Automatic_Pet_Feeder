@@ -42,6 +42,7 @@ boolean feed = true;
 char key;
 //  char's for the time that will be set by the user
 char r[6];
+String currentTime;
 
 void setup() 
 { 
@@ -49,15 +50,18 @@ void setup()
   myServo.attach(4); 
   Wire.begin(25, 26);  
   rtc.begin();
+  //set rtc time to computer time
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   lcd.begin(16,2);
   myServo.write(55); 
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(17, OUTPUT);
   pinMode(18, OUTPUT);
   pinMode(19, OUTPUT);
 } 
 
 void loop() {
+  
   lcd.setCursor(0, 0);
   int buttonPress;
   buttonPress = digitalRead(27);
@@ -71,18 +75,18 @@ void loop() {
   // Get current time from DS3231
   DateTime now = rtc.now();
   
-  // Format time as HH:MM:SS
-  char timeStr[9];
-  sprintf(timeStr, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
-  
-  // Extract individual digits
+  // Format the time as HH:MM:SS
+  String timeStr = String(now.hour()) + ":" + String(now.minute()) + ":" + String(now.second());
+  Serial.println(timeStr);
+
+  /* Extract individual digits
   t1 = timeStr[0] - '0';
   t2 = timeStr[1] - '0';
   t3 = timeStr[3] - '0';
   t4 = timeStr[4] - '0';
   t5 = timeStr[6] - '0';
   t6 = timeStr[7] - '0';
-  
+  */
   lcd.print(timeStr);
   
   lcd.setCursor(0, 1);
@@ -92,6 +96,7 @@ void loop() {
   char dateStr[11];
   sprintf(dateStr, "%02d/%02d/%04d", now.day(), now.month(), now.year());
   lcd.print(dateStr);
+
   
   // Check feeding time
   if (t1 == r[0] && t2 == r[1] && t3 == r[2] && t4 == r[3] && t5 < 1 && t6 < 3 && feed == true) {
