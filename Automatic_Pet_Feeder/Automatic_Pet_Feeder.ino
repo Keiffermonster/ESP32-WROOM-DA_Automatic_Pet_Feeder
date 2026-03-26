@@ -2,9 +2,9 @@
 
 #include <LiquidCrystal_I2C.h>
 #include <RTClib.h>
-#include <ESP32Servo.h>
 #include <Keypad.h>
 #include <Wire.h>
+
 
 // create 4 rows and 4 colulms 
 const byte ROWS = 4;
@@ -29,7 +29,7 @@ Keypad kpd = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 RTC_DS3231 rtc;
 
 // initialize the servo object
-Servo myServo;  
+//Servo myServo;  
 
 // makes the lcd object and assigns the pins to (rs, enable, d4, d5, d6, d7) VSS = GROUND VDD = 5v K = GROUND A = 5v
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -45,18 +45,24 @@ char r[6];
 
 void setup() 
 { 
-  Serial.begin(74880);
-  Wire.begin(21, 22); // 21 and 22 are default SDA = 21 SCL 22
-  Wire.setClock(100000); // Standard mode, more stable than default fast mode
+  //pin 13 is the L led on the board
+  pinMode(13, OUTPUT);
+  digitalWrite(13, LOW);
+
+  Serial.begin(115200);
+  Wire.begin(); // 21 and 22 are default SDA = 21 SCL 22
+  Wire.setWireTimeout(3000, true);
+  Wire.setClock(50000); // Standard mode, more stable than default fast mode
+  Serial.println("serial check");
   
   // attach the signal pin of servo to pin4 of esp32
-  myServo.attach(12);
+  //myServo.attach(12);
 
   if (!rtc.begin()) {
     Serial.println("RTC not found!");
-    while (1);
+    ;
   }
-
+ 
   if (rtc.lostPower()) {
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
@@ -64,13 +70,16 @@ void setup()
   lcd.init();       // replaces lcd.begin(16,2)
   lcd.backlight();  // turn on backlight
   lcd.clear();
+  lcd.print("System Ready");
+  delay(1000);
 
-  myServo.write(55);
+  //myServo.write(55);
 
 
   //keypad pins
   //coumns are outputs 
   //rows are inputs
+  /*
   pinMode(15, OUTPUT);
   pinMode(2, OUTPUT);
   pinMode(4, OUTPUT);
@@ -79,34 +88,37 @@ void setup()
   pinMode(33, INPUT);  
   pinMode(34, INPUT);
   pinMode(35, INPUT); 
-
+  */
   //make button take input
-  pinMode(27, INPUT_PULLDOWN);
+ //pinMode(27, INPUT_PULLDOWN);
   
 } 
 
 void recoverI2C() {
+  const int sdaPin = 20; 
+  const int sclPin = 21; 
   // Manually pulse SCL 9 times to release stuck slave
-  pinMode(21, OUTPUT); // SDA
-  pinMode(22, OUTPUT); // SCL
+  pinMode(sdaPin, OUTPUT); // SDA
+  pinMode(sclPin, OUTPUT); // SCL
 
-  digitalWrite(21, HIGH);
+  digitalWrite(sdaPin, HIGH);
   for (int i = 0; i < 9; i++) {
-    digitalWrite(22, HIGH);
+    digitalWrite(sclPin, HIGH);
     delayMicroseconds(5);
-    digitalWrite(22, LOW);
+    digitalWrite(sclPin, LOW);
     delayMicroseconds(5);
   }
   // Send stop condition
-  digitalWrite(21, LOW);
+  digitalWrite(sdaPin, LOW);
   delayMicroseconds(5);
-  digitalWrite(22, HIGH);
+  digitalWrite(sclPin, HIGH);
   delayMicroseconds(5);
-  digitalWrite(21, HIGH);
+  digitalWrite(sdaPin, HIGH);
 
   // Reinitialise properly
-  Wire.begin(21, 22);
-  Wire.setClock(100000);
+  Wire.begin();
+  Wire.setWireTimeout(3000, true);
+  Wire.setClock(50000);
   delay(100);
   lcd.init();
   lcd.backlight();
@@ -114,17 +126,18 @@ void recoverI2C() {
 
 void loop() {
 
-  DateTime now;
-  Wire.beginTransmission(0x68); // RTC address
+  DateTime now = rtc.now();
+  //Wire.beginTransmission(0x68); // RTC address
+  /*
   if (Wire.endTransmission() == 0) {
     now = rtc.now(); // only read if RTC is responding
   } else {
     Serial.println("RTC not responding");
     return; // skip this loop iteration
   }
-
+*/
   static unsigned long lastCheck = 0;
-
+/*
   if (millis() - lastCheck > 5000) {
     lastCheck = millis();
     Wire.beginTransmission(0x27);
@@ -132,10 +145,10 @@ void loop() {
     Serial.printf("I2C health check: %d\n", error); // 0 = good
     if (error != 0) {
       Serial.println("Recovering...");
-      recoverI2C();
+      //recoverI2C();
     }
   }
-
+  */
   static int lastSecond = -1;
   if (now.second() != lastSecond) {
     lastSecond = now.second();
@@ -164,9 +177,9 @@ void loop() {
   
   // Check feeding time
   if (t1 == r[0] && t2 == r[1] && t3 == r[2] && t4 == r[3] && t5 < 1 && t6 < 3 && feed == true) {
-    myServo.write(100);
+    //myServo.write(100);
     delay(400);   
-    myServo.write(55); 
+    //myServo.write(55); 
     feed = false;
   }
 
@@ -176,10 +189,10 @@ void setFeedingTime()
 {
   feed = true;
    int i=0;
-  lcd.clear();
+  //lcd.clear();
   lcd.setCursor(0,0);
   lcd.print("Set feeding Time");
-  lcd.clear();
+  //lcd.clear();
   lcd.print("HH:MM");
   lcd.setCursor(0,1);
   while(1){
